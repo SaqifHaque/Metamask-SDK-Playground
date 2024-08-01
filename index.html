@@ -17,8 +17,49 @@
     sdk.connect()
       .then((res) => {
         provider = sdk.getProvider();
+        console.log(provider, 'provider')
+        console.log(res.data, res,'data');
+        //document.getElementById('provider-info').textContent = `Provider: ${provider}`;
+        provider.request({ method: 'eth_requestAccounts' })
+          .then((accounts) => {
+            const walletAddress = accounts[0];
+            console.log('Wallet Address:', walletAddress);
+
+            // Update the paragraph with the wallet address
+            document.getElementById('provider-info').textContent = `Wallet Address: ${walletAddress}`;
+          })
+          .catch((err) => console.log('Failed to get accounts:', err));
       })
       .catch((e) => console.log('request accounts ERR', e));
+  }
+
+  function sendTransaction() {
+    if (!provider) {
+      console.log('Provider not initialized. Connect first.');
+      return;
+    }
+
+    try {
+      const accounts = provider.request({ method: 'eth_requestAccounts' });
+      const sender = accounts[0]; // The account from which to send the transaction
+
+      const transactionParameters = {
+        to: '0xRecipientAddressHere', // Replace with the recipient's address
+        from: sender,
+        value: '0x9184e72a000', // 0.01 ETH in wei (1 ETH = 10^18 wei)
+        gas: '0x5208', // 21000 Gwei (basic transaction cost)
+      };
+
+      // Sending the transaction
+      const txHash = provider.request({
+        method: 'eth_sendTransaction',
+        params: [transactionParameters],
+      });
+
+      console.log('Transaction sent! Hash:', txHash);
+    } catch (e) {
+      console.log('Failed to send transaction:', e);
+    }
   }
 
   function addEthereumChain() {
@@ -40,5 +81,6 @@
   }
 </script>
 <button onclick="connect()">Connect</button>
+<p id="provider-info"></p>
 
 <button onclick="addEthereumChain()">ADD ETHEREUM CHAIN</button>
