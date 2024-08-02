@@ -1,4 +1,6 @@
 <script src="/node_modules/@metamask/sdk/dist/browser/iife/metamask-sdk.js"></script>
+<script src="/node_modules/ethers/dist/ethers.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js" integrity="sha512-f+t6//rz3Iy3hp1CiwtsigYtyWuGk7bf6xl2RTOPvmyMIfTQJ4iy6Lg1dah1bsLQ9SLideJGicgmOkBsBXP1aA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
   const sdk = new MetaMaskSDK.MetaMaskSDK({
     dappMetadata: {
@@ -11,7 +13,42 @@
   });
 </script>
 <script>
-  let provider;
+  //let provider;
+  let walletaddress;
+
+  // NFT Contract ABI
+  const contractABI = [
+    "function ownerOf(uint256 tokenId) view returns (address)"
+  ];
+
+  const contractAddress = "0x86159832B39ca887E47E4691a22Ab2612614F1Cd";
+
+  const tokenId = "3";
+
+  const provider = new ethers.BrowserProvider(window.ethereum);
+
+  function connectWalletAndGetOwner(tokenId) {
+    if (typeof window.ethereum !== 'undefined') {
+        const nftContractAddress = document.getElementById('nft').value;
+        provider.send("eth_requestAccounts", [])
+        .then(() => provider.getSigner())
+        .then((signer) => {
+            // Create a contract instance
+            const nftContract = new ethers.Contract(nftContractAddress, contractABI, signer);
+            
+            // Call the ownerOf function
+            return nftContract.ownerOf(tokenId)
+        })
+        .then((ownerAddress) => {
+            console.log(`Owner of token ${tokenId}: ${ownerAddress}`);
+        })
+        .catch((error) => {
+            console.error("Error fetching owner:", error);
+        });
+    } else {
+        console.error('Ethereum provider is not available. Make sure MetaMask is installed.');
+    }
+  }
 
   function connect() {
     sdk.connect()
@@ -22,7 +59,7 @@
         //document.getElementById('provider-info').textContent = `Provider: ${provider}`;
         provider.request({ method: 'eth_requestAccounts' })
           .then((accounts) => {
-            const walletAddress = accounts[0];
+            walletAddress = accounts[0];
             console.log('Wallet Address:', walletAddress);
 
             // Update the paragraph with the wallet address
@@ -76,7 +113,7 @@
       console.log(recipientAddress, 'recip');
 
       const transactionParameters = {
-        to: recipientAddress, // Replace with the recipient's address
+        to: recipientAddress, 
         from: sender,
         value: ethToWei(amountInEth), // 0.01 ETH in wei (1 ETH = 10^18 wei)
         gas: '0x5208', // 21000 Gwei (basic transaction cost)
@@ -94,6 +131,45 @@
     }
   }
 
+  async function validateNFTOwnership(tokenId) {
+      // Check if MetaMask is installed
+      if (typeof window.ethereum !== 'undefined') {
+
+        // Create a new Web3 provider
+        const web3Provider = new ethers.BrowserProvider(window.ethereum);
+
+        // Get the signer (the current user)
+        const signer = web3Provider.getSigner();
+
+        // Get the user's address
+        const userAddress = walletaddress;
+
+        const contractAddress = document.getElementById('nft').value;
+
+        // Create a new instance of the NFT contract
+        const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+        conso
+
+        try {
+          // Call the ownerOf function to get the owner of the NFT
+          const ownerAddress = await contract.ownerOf(tokenId);
+          console.log(`Owner of token ID ${tokenId}: ${ownerAddress}`);
+
+          // Compare the retrieved address with the user's address
+          if (ownerAddress.toLowerCase() === userAddress.toLowerCase()) {
+            console.log("You are the owner of this NFT.");
+          } else {
+            console.log("You are NOT the owner of this NFT.");
+          }
+        } catch (error) {
+          console.error("Error fetching owner:", error);
+        }
+      } else {
+        console.log("MetaMask is not installed.");
+      }
+    }
+
 
 </script>
 <button onclick="connect()">Connect</button>
@@ -108,3 +184,9 @@
 <label for="amount">Amount:</label>
 <input type="text" id="amount" placeholder="Enter amount" />
 <button onclick="sendTransaction()">Send</button>
+
+
+<h2>Validate NFT</h2>
+<label for="amount">Nft Address:</label>
+<input type="text" id="nft" placeholder="Enter address" />
+<button onclick="connectWalletAndGetOwner()">Validate</button>
